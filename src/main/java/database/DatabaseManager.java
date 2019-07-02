@@ -1,8 +1,13 @@
 package database;
 
+import Measurements.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
+import org.influxdb.annotation.Measurement;
 import org.influxdb.dto.Point;
+import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONObject;
 import org.influxdb.dto.*;
 
@@ -32,7 +37,7 @@ public class DatabaseManager {
 
     private static InfluxDB influxDB;
 
-    static void process(String data) {
+    public static void process(String data) {
         JSONObject jsonObject = new JSONObject(data);
         Point p;
         switch ((String) jsonObject.get("type")) {
@@ -140,6 +145,26 @@ public class DatabaseManager {
             System.out.println("Error pinging server.");
         } else {
             System.out.println(response);
+        }
+    }
+
+    public static String getMeasurement(String measurementType){
+        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM"+measurementType, DB_NAME));
+        Gson gsosn = new GsonBuilder().create();
+        InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
+        switch (measurementType){
+            case TCP_TYPE:
+                return gsosn.toJson((List<TCPMeasurement>)resultMapper.toPOJO(queryResult, Measurements.TCPMeasurement.class));
+            case PING_TYPE:
+                return gsosn.toJson((List<PingMeasurement>)resultMapper.toPOJO(queryResult, PingMeasurement.class));
+            case DNS_TYPE:
+                return  gsosn.toJson((List<DNSLookupMeasurement>)resultMapper.toPOJO(queryResult, DNSLookupMeasurement.class));
+            case HTTP_TYPE:
+                return  gsosn.toJson((List<HTTPMeasurement>)resultMapper.toPOJO(queryResult, HTTPMeasurement.class));
+            case TRACERT_TYPE:
+                return  gsosn.toJson((List<TracerouteMeasurement>)resultMapper.toPOJO(queryResult, TracerouteMeasurement.class));
+            default:
+                return null;
         }
     }
 }
