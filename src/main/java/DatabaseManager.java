@@ -1,7 +1,6 @@
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
-import org.influxdb.dto.Pong;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -127,7 +126,7 @@ class DatabaseManager {
          userName: [value]
          password: [value]
          */
-        String databaseAddress = "http://jchavula-1.cs.uct.ac.za:8086", userDetails = "bugbusters", pwdDetails = "bugbusters";/*
+        String databaseAddress = "", userDetails = "", pwdDetails = "";
         try {
             BufferedReader fileInputStream = new BufferedReader(new FileReader(new File(CONFIG_FILE)));
             databaseAddress = fileInputStream.readLine();
@@ -136,14 +135,8 @@ class DatabaseManager {
             pwdDetails = fileInputStream.readLine();
         } catch (IOException e) {
             e.printStackTrace();
-        }*/
-        influxDB = InfluxDBFactory.connect(databaseAddress, userDetails, pwdDetails);
-        Pong response = influxDB.ping();
-        if (response.getVersion().equalsIgnoreCase("unknown")) {
-            System.out.println("Error pinging server.");
-        }else{
-            System.out.println(response);
         }
+        influxDB = InfluxDBFactory.connect(databaseAddress, userDetails, pwdDetails);
 
     }
 }
