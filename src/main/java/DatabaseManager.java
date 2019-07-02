@@ -3,6 +3,7 @@ import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
 import org.json.JSONObject;
 import org.influxdb.dto.*;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -11,6 +12,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -18,13 +20,13 @@ class DatabaseManager {
     /**
      * The different types of measurements we can write to the database
      */
-    private static final String TCP_TYPE = "tcpthroughput",
+    public static final String TCP_TYPE = "tcpthroughput",
             PING_TYPE = "ping",
             DNS_TYPE = "dns_lookup",
             HTTP_TYPE = "http",
             TRACERT_TYPE = "traceroute";
     private static final String CONFIG_FILE = ".config";
-    private static  String DB_NAME = "mydb";
+    private static String DB_NAME = "mydb";
 
     private static InfluxDB influxDB;
 
@@ -58,11 +60,11 @@ class DatabaseManager {
 
     private static Point writeTracertDataToDB(JSONObject jsonObject) {
         JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(PING_TYPE)
+        return Point.measurement(TRACERT_TYPE)
                 .time(Objects.requireNonNull(convertStringToTimestamp((String) jsonObject.get("timestamp"))).getTime(), TimeUnit.MILLISECONDS)
                 .addField("num_hops", (Integer) measurementValues.get("num_hops"))
-                .addField("ping_method ", String.valueOf(measurementValues.get("hop_N_addr_i")))
-                .addField("hop_N_rtt_ms", (Double) measurementValues.get("hop_N_rtt_ms"))
+                .addField("hop_N_addr_i", String.valueOf(measurementValues.get("hop_N_addr_i")))
+                .addField("hop_N_rtt_ms", String.valueOf((List) measurementValues.get("hop_N_rtt_ms")))
                 .build();
     }
 
@@ -90,7 +92,7 @@ class DatabaseManager {
         return Point.measurement(PING_TYPE)
                 .time(Objects.requireNonNull(convertStringToTimestamp((String) jsonObject.get("timestamp"))).getTime(), TimeUnit.MILLISECONDS)
                 .addField("target_ip", (String) measurementValues.get("target_ip"))
-                .addField("ping_method ", (Integer) measurementValues.get("ping_method"))
+                .addField("ping_method ", (String) measurementValues.get("ping_method"))
                 .addField("mean_rtt_ms", (Double) measurementValues.get("mean_rtt_ms"))
                 .addField("max_rtt_ms", (Double) measurementValues.get("max_rtt_ms"))
                 .addField("stddev_rtt_ms ", (Double) measurementValues.get("stddev_rtt_ms"))
@@ -102,7 +104,7 @@ class DatabaseManager {
         return Point.measurement(TCP_TYPE)
                 .time(Objects.requireNonNull(convertStringToTimestamp((String) jsonObject.get("timestamp"))).getTime(), TimeUnit.MILLISECONDS)
                 .addField("tcp_speed_results", String.valueOf(measurementValues.get("tcp_speed_results")))
-                .addField("data_limit_exceeded", (Integer) measurementValues.get("data_limit_exceeded"))
+                .addField("data_limit_exceeded", (Boolean) measurementValues.get("data_limit_exceeded"))
                 .addField("duration", (Double) measurementValues.get("duration"))
                 .build();
     }
@@ -131,11 +133,11 @@ class DatabaseManager {
             e.printStackTrace();
         }
         influxDB = InfluxDBFactory.connect(databaseAddress, userDetails, pwdDetails);
-	Pong response = influxDB.ping();
-	if (response.getVersion().equalsIgnoreCase("unknown")) {
-		System.out.println("Error pinging server.");
-	}else{
-		System.out.println(response);
-	}	
+        Pong response = influxDB.ping();
+        if (response.getVersion().equalsIgnoreCase("unknown")) {
+            System.out.println("Error pinging server.");
+        } else {
+            System.out.println(response);
+        }
     }
 }
