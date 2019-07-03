@@ -1,2 +1,2 @@
 # Database_Server
-tasks.Server that handles querying and writing to the database
+tasks.WriteDBServer that handles querying and writing to the database

@@ -4,12 +4,12 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Server implements Runnable{
+public class WriteDBServer implements Runnable{
 
 	private ServerSocket serverSocket;
 	private int port;
 
-	public Server(int port){
+	public WriteDBServer(int port){
 		try{
 			serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
@@ -17,7 +17,7 @@ public class Server implements Runnable{
 		}
 	}
 
-	public Server(){
+	public WriteDBServer(){
 		this(7000);
 	}
 	@Override
