@@ -1,4 +1,4 @@
-# Database_Server
+# Database Server
 Server that handles querying and writing to the database.
 
 There are three main classes in this repository:
@@ -12,10 +12,101 @@ There are three main classes in this repository:
 1. Using your client create a socket to connect to the server. Once connected just to the server the ```measurement types``` for which you need data for and the server will get these and return them to you immediately.
 
 
-## Steps to write send data from your mobile phone.
+## Steps to write send data from your mobile phone
 1. Ensure that the config files on the phone have the correct server address.
 1. Connect to this server address and then use this socekct for the duration of the connection to send data to the server in form of a json. for now we are assuming the happy case where all the data is in the correct formart though this will need to change.
 
+
+## JSON Formart for incoming data
+This is the format of the data we expect from the mobile phones:
+```
+[
+    { "device_id": "device ID",
+    "properties": {
+        "timestamp": "timestamp in ISO8601 format",
+        "os_version": "device OS version",
+    "location": {
+        "latitude": latitude value as floating point decimal degrees,
+        "longitude": longitude value as floating point decimal degrees
+     }
+    "location_type": "location type string",
+    "network_type": "network type string",
+    "carrier": "carrier identifier string",
+    }
+    "type": "measurement type",
+    "timestamp": "measurement timestamp in ISO8601 format",
+    "success": true or false,
+    "task_key": "task key associated with this measurement, if any",
+    "parameters": [
+        { "paramName1": "paramValue1" },
+        { "paramName2": "paramValue2" },
+        ...
+    ],
+    "values": [
+        { "valueName1": "valueValue1" },
+        { "valueName2": "valueValue2" },
+    ...
+    ],
+    },
+    { /* Additional Measurement... */ },
+    { /* Additional Measurement... */ },
+]
+```
+From this we will take out the import values fields.
+
+### Value fileds for different measurement types
+All the time fields represent time in milliseconds
+#### Ping values
+ ```
+"values": [
+    { "target_ip": "String" },
+    { "ping_method": "String"},
+    {"mean_rtt_ms": "Double"},
+    {"min_rtt_ms":"Double"},
+    {"max_rtt_ms":"Double"},
+    {"stddev_rtt_ms":"Double"}
+]
+  ```
+ #### Traceroute values
+ ```
+ "values": [
+    {"num_hps ": "number" },
+    {"hop_N_addr_i": "Map/List of Pairs"},
+    {"hop_N_rtt_ms ": "List of Doubles"}
+]
+```
+
+ #### DNS values
+ ```
+ "values": [
+    { "address": "String" },
+    { "real_hostname": "String"},
+    {"time_ms": "Double"}
+]
+```
+ #### HTTP values
+ ```
+ "values": [
+    {"time_ms": "String"},
+    {"code": "String"}
+]
+```
+ #### TCP values
+ ```
+ "values": [
+    {"tcp_speed_results": "List of results"},
+    {"data_limit_exceeded": "Boolean"},
+    {"duration":"Double"},
+    {"server_version":"String"}
+]
+```
+ #### HTTP values
+ ```
+ "values": [
+    {"time_ms": "String"},
+    {"code": "String"}
+]
+```
 
 ### Issues to be fixed.
 Check out the [Issues](https://github.com/Bugbustrs/Database_Server/issues) that still need to be fixed.
