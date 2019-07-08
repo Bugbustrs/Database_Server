@@ -30,7 +30,10 @@ public class ServerWriteTask implements Runnable {
             try {
                 String data = inputStream.readLine();
                 //process the string
-                DatabaseManager.process(data);
+                if(data!=null) {
+                    System.out.println(data);
+                    DatabaseManager.process(data);
+                }
             } catch (IOException e) {
                 try {
                     if (inputStream.read() == -1) {
