@@ -1,9 +1,11 @@
 package tasks;
 
 import database.DatabaseManager;
-import org.json.JSONObject;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Objects;
 
@@ -34,8 +36,10 @@ public class ServerReadTask implements Runnable {
             try {
                 System.out.println("waiting for request");
                 String message = input.readLine();//assumes that for now this is just the Measurement type that the client is asking fro
-                if(message==null || message.equalsIgnoreCase("disconnect"))
+                if(message==null || message.equalsIgnoreCase("disconnect")) {
+                    socket.close();
                     return;
+                }
                 output.println(Objects.requireNonNull(DatabaseManager.getMeasurement(message)));
                 output.flush();
             } catch (IOException e) {

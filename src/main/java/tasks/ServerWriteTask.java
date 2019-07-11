@@ -30,8 +30,10 @@ public class ServerWriteTask implements Runnable {
             try {
                 String data = inputStream.readLine();
                 /*will exit if the data is null*/
-                if (data == null || data.equalsIgnoreCase("disconnect"))
+                if (data == null || data.equalsIgnoreCase("disconnect")){
+                    socket.close();
                     return;
+                }
                 //process the string
                 System.out.println(data);
                 DatabaseManager.process(data);
