@@ -32,17 +32,15 @@ public class ServerReadTask implements Runnable {
     public void run() {
         while (true) {
             try {
-                String measurementType = input.readLine();//assumes that for now this is just the Measurement type that the client is asking fro
-                output.write(Objects.requireNonNull(DatabaseManager.getMeasurement(measurementType)));
+                System.out.println("waiting for request");
+                String message = input.readLine();//assumes that for now this is just the Measurement type that the client is asking fro
+                if(message==null || message.equalsIgnoreCase("disconnect"))
+                    return;
+                output.println(Objects.requireNonNull(DatabaseManager.getMeasurement(message)));
+                output.flush();
             } catch (IOException e) {
-                try{/*Maybe unnecessary if java automatically closes the stream for us. Was just taking precautions here*/
-                    if (input.read() == -1) {
-                        socket.close();
-                        return;
-                    }
-                }catch(IOException ex){
-                    ex.printStackTrace();
-                }
+                e.printStackTrace();
+                return;
             }
         }
     }

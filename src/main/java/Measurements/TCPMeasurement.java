@@ -5,6 +5,7 @@ import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
+import java.util.List;
 
 @Measurement(name="tcpthroughput")
 public class TCPMeasurement {

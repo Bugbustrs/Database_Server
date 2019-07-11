@@ -15,6 +15,9 @@ public class HTTPMeasurement {
     @Column(name="time_ms")
     private Double timeTakenMs;
 
+    @Column(name="code")
+    private int httpResultCode;
+
     public Instant getTime() {
         return time;
     }
@@ -31,16 +34,13 @@ public class HTTPMeasurement {
         this.timeTakenMs = timeTakenMs;
     }
 
-    public String getHttpResultCode() {
+    public int getHttpResultCode() {
         return httpResultCode;
     }
 
-    public void setHttpResultCode(String httpResultCode) {
+    public void setHttpResultCode(int httpResultCode) {
         this.httpResultCode = httpResultCode;
     }
-
-    @Column(name="code")
-    private String httpResultCode;
 
 
 }

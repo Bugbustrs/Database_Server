@@ -29,6 +29,7 @@ public class ReadDBServer implements Runnable {
                 Socket clientSocket = serverSocket.accept();
                 Thread temp = new Thread(new ServerReadTask(clientSocket));
                 temp.start();
+                System.out.println("Started new thread");
             } catch (IOException e) {
                 e.printStackTrace();
             }

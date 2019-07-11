@@ -29,21 +29,16 @@ public class ServerWriteTask implements Runnable {
         while (true) {
             try {
                 String data = inputStream.readLine();
+                /*will exit if the data is null*/
+                if (data == null || data.equalsIgnoreCase("disconnect"))
+                    return;
                 //process the string
-                if(data!=null) {
-                    System.out.println(data);
-                    DatabaseManager.process(data);
-                }
+                System.out.println(data);
+                DatabaseManager.process(data);
+
             } catch (IOException e) {
-                try {
-                    if (inputStream.read() == -1) {
-                        socket.close();
-                        return;
-                    }
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
                 e.printStackTrace();
+                return;
             }
         }
     }

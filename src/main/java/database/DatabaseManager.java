@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,94 +41,94 @@ public class DatabaseManager {
 
     public static void process(String data) {
         JSONObject jsonObject = new JSONObject(data);
+        JSONObject values = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
         Point p;
         switch ((String) jsonObject.get("type")) {
             case TCP_TYPE:
-                p = createTCPPoint(jsonObject);
+                p = createTCPPoint(time, values);
                 break;
             case PING_TYPE:
-                p = createPingPoint(jsonObject);
+                p = createPingPoint(time, values);
                 break;
             case DNS_TYPE:
-                p = createDNSPoint(jsonObject);
+                p = createDNSPoint(time, values);
                 break;
             case HTTP_TYPE:
-                p = createHttpPoint(jsonObject);
+                p = createHttpPoint(time, values);
                 break;
             case TRACERT_TYPE:
                 //to be consindered later
-//                p = createTraceRTPoint(jsonObject);
+//                p = createTraceRTPoint(time, values);
 //                break;
             default:
                 p = null;
                 break;
         }
         if (p != null) {
-            influxDB.write(DB_NAME, "autogen", p);
+            influxDB.write(DB_NAME, RP_Name, p);
         }
     }
 
-    private static Point createTraceRTPoint(JSONObject jsonObject) {
-        JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(TRACERT_TYPE)
-                .time(jsonObject.getLong("timestamp"), TimeUnit.MICROSECONDS)
-                .addField("num_hops", (String) measurementValues.get("num_hops"))
-                .addField("hop_N_addr_i", String.valueOf(measurementValues.get("hop_N_addr_i")))
-                .addField("hop_N_rtt_ms", String.valueOf((List) measurementValues.get("hop_N_rtt_ms")))
+    private static Point createTraceRTPoint(long time, JSONObject measurementValues) {
+        TracerouteMeasurement tracerouteMeasurement = new TracerouteMeasurement();
+
+        return Point.measurementByPOJO(TracerouteMeasurement.class)
+                .time(time, TimeUnit.MICROSECONDS)
+                .addFieldsFromPOJO(tracerouteMeasurement)
                 .build();
     }
 
-    private static Point createHttpPoint(JSONObject jsonObject) {
-        JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(HTTP_TYPE)
-                .time(jsonObject.getLong("timestamp"), TimeUnit.MICROSECONDS)
-                .addField("time_ms", (String) measurementValues.get("time_ms"))
-                .addField("code ", (String) measurementValues.get("code"))
+    private static Point createHttpPoint(long time, JSONObject measurementValues) {
+        HTTPMeasurement httpMeasurement = new HTTPMeasurement();
+
+        httpMeasurement.setHttpResultCode(Integer.parseInt((String) measurementValues.get("code")));
+        httpMeasurement.setTimeTakenMs(Double.parseDouble((String) measurementValues.get("time_ms")));
+
+        return Point.measurementByPOJO(HTTPMeasurement.class)
+                .time(time, TimeUnit.MICROSECONDS)
+                .addFieldsFromPOJO(httpMeasurement)
                 .build();
     }
 
-    private static Point createDNSPoint(JSONObject jsonObject) {
-        JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(DNS_TYPE)
-                .time(jsonObject.getLong("timestamp"), TimeUnit.MICROSECONDS)
-                .addField("address", (String) measurementValues.get("address"))
-                .addField("real_hostname", (String) measurementValues.get("real_hostname"))
-                .addField("time_ms", (String) measurementValues.get("time_ms"))
+    private static Point createDNSPoint(long time, JSONObject measurementValues) {
+        DNSLookupMeasurement dnsLookupMeasurement = new DNSLookupMeasurement();
+
+        dnsLookupMeasurement.setHostAddress((String) measurementValues.get("address"));
+        dnsLookupMeasurement.setHostName((String) measurementValues.get("real_hostname"));
+        dnsLookupMeasurement.setTimeTaken(measurementValues.getDouble("time_ms"));
+
+        return Point.measurementByPOJO(DNSLookupMeasurement.class).time(time, TimeUnit.MICROSECONDS)
+                .addFieldsFromPOJO(dnsLookupMeasurement)
                 .build();
     }
 
-    private static Point createPingPoint(JSONObject jsonObject) {
-        JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(PING_TYPE)
-                .time(jsonObject.getLong("timestamp"), TimeUnit.MICROSECONDS)
-                .addField("target_ip", (String) measurementValues.get("target_ip"))
-                .addField("ping_method", (String) measurementValues.get("ping_method"))
-                .addField("mean_rtt_ms", (String)measurementValues.get("mean_rtt_ms"))
-                .addField("max_rtt_ms", (String) measurementValues.get("max_rtt_ms"))
-                .addField("stddev_rtt_ms", (String) measurementValues.get("stddev_rtt_ms"))
+    private static Point createPingPoint(long time, JSONObject measurementValues) {
+        PingMeasurement pingMeasurement = new PingMeasurement();
+
+        pingMeasurement.setTargetIpAddress((String) measurementValues.get("target_ip"));
+        pingMeasurement.setPingMethod((String) measurementValues.get("ping_method"));
+        pingMeasurement.setMeanRttMS(Double.parseDouble((String)measurementValues.get("mean_rtt_ms")));
+        pingMeasurement.setMaxRttMs(Double.parseDouble((String) measurementValues.get("max_rtt_ms")));
+        pingMeasurement.setStddevRttMs(Double.parseDouble((String) measurementValues.get("stddev_rtt_ms")));
+
+        return Point.measurementByPOJO(PingMeasurement.class)
+                .time(time, TimeUnit.MICROSECONDS)
+                .addFieldsFromPOJO(pingMeasurement)
                 .build();
     }
 
-    private static Point createTCPPoint(JSONObject jsonObject) {
-        JSONObject measurementValues = (JSONObject) jsonObject.get("values");
-        return Point.measurement(TCP_TYPE)
-                .time(jsonObject.getLong("timestamp"), TimeUnit.MICROSECONDS)
-                .addField("tcp_speed_results", String.valueOf(measurementValues.get("tcp_speed_results")))
-                .addField("data_limit_exceeded", (String) measurementValues.get("data_limit_exceeded"))
-                .addField("duration", (String) measurementValues.get("duration"))
-                .build();
-    }
+    private static Point createTCPPoint(long time, JSONObject measurementValues) {
+        TCPMeasurement tcpMeasurement = new TCPMeasurement();
 
-    private static Timestamp convertStringToTimestamp(String strDate) {
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
-            // you can change format of date
-            Date date = dateFormat.parse(strDate);
-            return new Timestamp(date.getTime());
-        } catch (ParseException e) {
-            System.out.println("Exception :" + e);
-            return null;
-        }
+        tcpMeasurement.setSpeedValues((String)measurementValues.get("tcp_speed_results"));
+        tcpMeasurement.setDataLimitExceeded(Boolean.parseBoolean((String)measurementValues.get("data_limit_exceeded")));
+        tcpMeasurement.setMeasurementDuration(Double.parseDouble((String) measurementValues.get("duration")));
+
+        return Point.measurementByPOJO(TCPMeasurement.class)
+                .time(time, TimeUnit.MICROSECONDS)
+                .addFieldsFromPOJO(tcpMeasurement)
+                .build();
     }
 
     public static void connect() {
@@ -151,7 +152,7 @@ public class DatabaseManager {
     }
 
     public static String getMeasurement(String measurementType){
-        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM"+measurementType, DB_NAME));
+        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM "+measurementType, DB_NAME));
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType){
@@ -167,6 +168,18 @@ public class DatabaseManager {
                 return  gsosn.toJson((List<TracerouteMeasurement>)resultMapper.toPOJO(queryResult, TracerouteMeasurement.class));
             default:
                 return null;
+        }
+    }
+
+    private static Timestamp convertStringToTimestamp(String time) {
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+            // you can change format of date
+            Date date = dateFormat.parse(time);
+            return new Timestamp(date.getTime());
+        } catch (ParseException e) {
+            System.out.println("Exception :" + e);
+            return null;
         }
     }
 }

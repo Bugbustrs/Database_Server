@@ -5,8 +5,9 @@ import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
-@Measurement(name="dns_lookup")
+@Measurement(name="dns_lookup", timeUnit = TimeUnit.MILLISECONDS)
 public class DNSLookupMeasurement {
     @Column(name="time")
     private Instant time;
