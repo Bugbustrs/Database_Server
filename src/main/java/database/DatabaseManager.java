@@ -3,6 +3,7 @@ package database;
 import Measurements.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.commons.math3.util.Precision;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
@@ -83,7 +84,8 @@ public class DatabaseManager {
         HTTPMeasurement httpMeasurement = new HTTPMeasurement();
 
         httpMeasurement.setHttpResultCode(Integer.parseInt((String) measurementValues.get("code")));
-        httpMeasurement.setTimeTakenMs(Double.parseDouble((String) measurementValues.get("time_ms")));
+        double duration = Double.parseDouble((String) measurementValues.get("time_ms"));
+        httpMeasurement.setTimeTakenMs(Precision.round(duration, 2));
 
         return Point.measurementByPOJO(HTTPMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
@@ -105,12 +107,17 @@ public class DatabaseManager {
 
     private static Point createPingPoint(long time, JSONObject measurementValues) {
         PingMeasurement pingMeasurement = new PingMeasurement();
+        double mean, max, std;
+
+        mean = Double.parseDouble((String)measurementValues.get("mean_rtt_ms"));
+        max = Double.parseDouble((String) measurementValues.get("max_rtt_ms"));
+        std = Double.parseDouble((String) measurementValues.get("stddev_rtt_ms"));
 
         pingMeasurement.setTargetIpAddress((String) measurementValues.get("target_ip"));
         pingMeasurement.setPingMethod((String) measurementValues.get("ping_method"));
-        pingMeasurement.setMeanRttMS(Double.parseDouble((String)measurementValues.get("mean_rtt_ms")));
-        pingMeasurement.setMaxRttMs(Double.parseDouble((String) measurementValues.get("max_rtt_ms")));
-        pingMeasurement.setStddevRttMs(Double.parseDouble((String) measurementValues.get("stddev_rtt_ms")));
+        pingMeasurement.setMeanRttMS(Precision.round(mean, 2));
+        pingMeasurement.setMaxRttMs(Precision.round(max, 2));
+        pingMeasurement.setStddevRttMs(Precision.round(std, 2));
 
         return Point.measurementByPOJO(PingMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
@@ -123,8 +130,8 @@ public class DatabaseManager {
 
         tcpMeasurement.setSpeedValues((String)measurementValues.get("tcp_speed_results"));
         tcpMeasurement.setDataLimitExceeded(Boolean.parseBoolean((String)measurementValues.get("data_limit_exceeded")));
-        tcpMeasurement.setMeasurementDuration(Double.parseDouble((String) measurementValues.get("duration")));
-
+        double duration = Double.parseDouble((String) measurementValues.get("duration"));
+        tcpMeasurement.setMeasurementDuration(Precision.round(duration, 2));
         return Point.measurementByPOJO(TCPMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
                 .addFieldsFromPOJO(tcpMeasurement)
