@@ -22,6 +22,7 @@ This is the format of the data we expect from the mobile phones:
 ```
 [
     { "device_id": "device ID",
+    "account_name":"account_name"
     "properties": {
         "timestamp": "timestamp in ISO8601 format",
         "os_version": "device OS version",
