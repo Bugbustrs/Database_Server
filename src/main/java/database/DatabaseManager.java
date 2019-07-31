@@ -3,7 +3,14 @@ package database;
 import Measurements.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.math3.util.Precision;
+import org.bson.Document;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
@@ -13,34 +20,52 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+
+import static com.mongodb.client.model.Filters.eq;
 
 public class DatabaseManager {
     /**
      * The different types of measurements we can write to the database
      */
-    public static final String TCP_TYPE = "tcpthroughput",
+    private static final String TCP_TYPE = "tcpthroughput",
             PING_TYPE = "ping",
             DNS_TYPE = "dns_lookup",
             HTTP_TYPE = "http",
             TRACERT_TYPE = "traceroute";
-    private static final String CONFIG_FILE = ".config";
+
+    private static final String CONFIG_FILE = ".config.json";
+    private static JSONObject CONFIGS;
+
     private static String DB_NAME = "mydb";
 
     private static InfluxDB influxDB;
-    private static String RP_Name="autogen";
+    private static MongoDatabase mongoDatabase;
+    private static com.mongodb.client.MongoClient mongoClient;
+    private static MongoCollection<Document> collection;
 
-    public static void process(String data) {
+
+    public static boolean init() {
+        String text = null;
+        try {
+            text = new String(Files.readAllBytes(Paths.get(CONFIG_FILE)), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (text == null)
+            return false;
+        CONFIGS = new JSONObject(text);
+        return connectInflux() && connectMongo();
+
+
+    }
+
+    public static void writeValues(String data) {
         JSONObject jsonObject = new JSONObject(data);
         JSONObject values = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -67,6 +92,7 @@ public class DatabaseManager {
                 break;
         }
         if (p != null) {
+            String RP_Name = "autogen";
             influxDB.write(DB_NAME, RP_Name, p);
         }
     }
@@ -83,8 +109,8 @@ public class DatabaseManager {
     private static Point createHttpPoint(long time, JSONObject measurementValues) {
         HTTPMeasurement httpMeasurement = new HTTPMeasurement();
 
-        httpMeasurement.setHttpResultCode(Integer.parseInt((String) measurementValues.get("code")));
-        double duration = Double.parseDouble((String) measurementValues.get("time_ms"));
+        httpMeasurement.setHttpResultCode(Integer.parseInt(measurementValues.getString("code")));
+        double duration = Double.parseDouble(measurementValues.getString("time_ms"));
         httpMeasurement.setTimeTakenMs(Precision.round(duration, 2));
 
         return Point.measurementByPOJO(HTTPMeasurement.class)
@@ -96,8 +122,8 @@ public class DatabaseManager {
     private static Point createDNSPoint(long time, JSONObject measurementValues) {
         DNSLookupMeasurement dnsLookupMeasurement = new DNSLookupMeasurement();
 
-        dnsLookupMeasurement.setHostAddress((String) measurementValues.get("address"));
-        dnsLookupMeasurement.setHostName((String) measurementValues.get("real_hostname"));
+        dnsLookupMeasurement.setHostAddress(measurementValues.getString("address"));
+        dnsLookupMeasurement.setHostName(measurementValues.getString("real_hostname"));
         dnsLookupMeasurement.setTimeTaken(measurementValues.getDouble("time_ms"));
 
         return Point.measurementByPOJO(DNSLookupMeasurement.class).time(time, TimeUnit.MICROSECONDS)
@@ -109,12 +135,12 @@ public class DatabaseManager {
         PingMeasurement pingMeasurement = new PingMeasurement();
         double mean, max, std;
 
-        mean = Double.parseDouble((String)measurementValues.get("mean_rtt_ms"));
-        max = Double.parseDouble((String) measurementValues.get("max_rtt_ms"));
-        std = Double.parseDouble((String) measurementValues.get("stddev_rtt_ms"));
+        mean = Double.parseDouble(measurementValues.getString("mean_rtt_ms"));
+        max = Double.parseDouble(measurementValues.getString("max_rtt_ms"));
+        std = Double.parseDouble(measurementValues.getString("stddev_rtt_ms"));
 
-        pingMeasurement.setTargetIpAddress((String) measurementValues.get("target_ip"));
-        pingMeasurement.setPingMethod((String) measurementValues.get("ping_method"));
+        pingMeasurement.setTargetIpAddress(measurementValues.getString("target_ip"));
+        pingMeasurement.setPingMethod(measurementValues.getString("ping_method"));
         pingMeasurement.setMeanRttMS(Precision.round(mean, 2));
         pingMeasurement.setMaxRttMs(Precision.round(max, 2));
         pingMeasurement.setStddevRttMs(Precision.round(std, 2));
@@ -128,9 +154,9 @@ public class DatabaseManager {
     private static Point createTCPPoint(long time, JSONObject measurementValues) {
         TCPMeasurement tcpMeasurement = new TCPMeasurement();
 
-        tcpMeasurement.setSpeedValues((String)measurementValues.get("tcp_speed_results"));
-        tcpMeasurement.setDataLimitExceeded(Boolean.parseBoolean((String)measurementValues.get("data_limit_exceeded")));
-        double duration = Double.parseDouble((String) measurementValues.get("duration"));
+        tcpMeasurement.setSpeedValues(measurementValues.getString("tcp_speed_results"));
+        tcpMeasurement.setDataLimitExceeded(Boolean.parseBoolean(measurementValues.getString("data_limit_exceeded")));
+        double duration = Double.parseDouble(measurementValues.getString("duration"));
         tcpMeasurement.setMeasurementDuration(Precision.round(duration, 2));
         return Point.measurementByPOJO(TCPMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
@@ -138,55 +164,116 @@ public class DatabaseManager {
                 .build();
     }
 
-    public static void connect() {
-        String databaseAddress = "", userDetails = "", pwdDetails = "";
-        try {
-            BufferedReader fileInputStream = new BufferedReader(new FileReader(new File(CONFIG_FILE)));
-            databaseAddress = fileInputStream.readLine();
-            DB_NAME = fileInputStream.readLine();
-            userDetails = fileInputStream.readLine();
-            pwdDetails = fileInputStream.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static boolean connectInflux() {
+        String databaseAddress = CONFIGS.getString("influxDBAdd");
+        DB_NAME = CONFIGS.getString("influxDBName");
+        String userDetails = CONFIGS.getString("influxDBUser");
+        String pwdDetails = CONFIGS.getString("influxDBPassword");
         influxDB = InfluxDBFactory.connect(databaseAddress, userDetails, pwdDetails);
         Pong response = influxDB.ping();
         if (response.getVersion().equalsIgnoreCase("unknown")) {
-            System.out.println("Error pinging server.");
+            System.err.println("Error Connecting to Influx DB");
+            return false;
         } else {
             System.out.println(response);
+            return true;
         }
     }
 
-    public static String getMeasurement(String measurementType){
-        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM "+measurementType, DB_NAME));
+    /**
+     * Attempts to connects to a mongo database using the details in the given config files
+     *
+     * @return true if the connection was successfull and false otherwise
+     */
+    public static boolean connectMongo() {
+        try {
+            String databaseAddress = CONFIGS.getString("mongoDBAdd");
+            String dbName = CONFIGS.getString("mongoDBName");
+            String userDetails = CONFIGS.getString("mongoDBUser");
+            String pwdDetails = CONFIGS.getString("mongoDBPassword");
+            String collectionName = CONFIGS.getString("mongoCollName");
+            MongoCredential credential = null;
+            if (!userDetails.isEmpty()) {
+                credential = MongoCredential.createCredential(userDetails, dbName, pwdDetails.toCharArray());
+            }
+            if (databaseAddress.isEmpty()) {
+                if (credential == null)
+                    mongoClient = MongoClients.create();
+                else {
+                    mongoClient = MongoClients.create(
+                            MongoClientSettings.builder()
+                                    .applyToClusterSettings(builder ->
+                                            builder.hosts(Arrays.asList(new ServerAddress())))
+                                    .credential(credential)
+                                    .build());
+                }
+            } else {
+                if (credential == null) {
+                    mongoClient = MongoClients.create(databaseAddress);
+                } else {
+                    mongoClient = MongoClients.create(
+                            MongoClientSettings.builder()
+                                    .applyToClusterSettings(builder ->
+                                            builder.hosts(Arrays.asList(new ServerAddress(databaseAddress))))
+                                    .credential(credential)
+                                    .build());
+                }
+            }
+            mongoDatabase = mongoClient.getDatabase(dbName);
+            collection = mongoDatabase.getCollection(collectionName);
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Reads the database to see if we have measurements of this type. Returns all the measurements of the same type as String
+     *
+     * @param measurementType the type of measurement we want to return
+     * @return String representation of the JSon representing.
+     */
+    public static String getMeasurement(String measurementType) {
+        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
-        switch (measurementType){
+        switch (measurementType) {
             case TCP_TYPE:
-                return gsosn.toJson((List<TCPMeasurement>)resultMapper.toPOJO(queryResult, Measurements.TCPMeasurement.class));
+                return gsosn.toJson(resultMapper.toPOJO(queryResult, TCPMeasurement.class));
             case PING_TYPE:
-                return gsosn.toJson((List<PingMeasurement>)resultMapper.toPOJO(queryResult, PingMeasurement.class));
+                return gsosn.toJson(resultMapper.toPOJO(queryResult, PingMeasurement.class));
             case DNS_TYPE:
-                return  gsosn.toJson((List<DNSLookupMeasurement>)resultMapper.toPOJO(queryResult, DNSLookupMeasurement.class));
+                return gsosn.toJson(resultMapper.toPOJO(queryResult, DNSLookupMeasurement.class));
             case HTTP_TYPE:
-                return  gsosn.toJson((List<HTTPMeasurement>)resultMapper.toPOJO(queryResult, HTTPMeasurement.class));
+                return gsosn.toJson(resultMapper.toPOJO(queryResult, HTTPMeasurement.class));
             case TRACERT_TYPE:
-                return  gsosn.toJson((List<TracerouteMeasurement>)resultMapper.toPOJO(queryResult, TracerouteMeasurement.class));
+                return gsosn.toJson(resultMapper.toPOJO(queryResult, TracerouteMeasurement.class));
             default:
                 return null;
         }
     }
 
-    private static Timestamp convertStringToTimestamp(String time) {
+    /**
+     * Attempts to write Measurement Details into the database use to write the data.
+     *
+     * @param measurementDescr the data that we are wering
+     * @return true if the insert was successful and false otherwise
+     */
+    public static boolean insertMeasuremtnDetails(String measurementDescr) {
         try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-            // you can change format of date
-            Date date = dateFormat.parse(time);
-            return new Timestamp(date.getTime());
-        } catch (ParseException e) {
-            System.out.println("Exception :" + e);
-            return null;
+            Document document = Document.parse(measurementDescr);
+            collection.insertOne(document);
+            return true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return false;
         }
+    }
+
+    public static String getMeasurementDetails(String key) {
+        Document doc = collection.find(eq(" measurement_description.key", key)).first();
+        assert doc != null;
+        return doc.toJson();
     }
 }

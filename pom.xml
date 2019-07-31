@@ -56,6 +56,12 @@
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>3.11.0-rc0</version>
+        </dependency>
 
     </dependencies>
 </project>
