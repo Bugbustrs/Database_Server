@@ -65,8 +65,8 @@ public class DatabaseManager {
 
     }
 
-    public static void writeValues(String data) {
-        JSONObject jsonObject = new JSONObject(data);
+    public static void writeValues(JSONObject jsonObject) {
+        System.out.println(jsonObject.toString());
         JSONObject values = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
         Point p;
@@ -258,20 +258,19 @@ public class DatabaseManager {
      * Attempts to write Measurement Details into the database use to write the data.
      *
      * @param measurementDescr the data that we are wering
-     * @return true if the insert was successful and false otherwise
      */
-    public static boolean insertMeasuremtnDetails(String measurementDescr) {
+    public static void insertMeasurementDetails(String measurementDescr) {
         try {
+            System.out.println(measurementDescr);
             Document document = Document.parse(measurementDescr);
             collection.insertOne(document);
-            return true;
         } catch (Exception ex) {
             ex.printStackTrace();
-            return false;
         }
     }
 
     public static String getMeasurementDetails(String key) {
+        System.out.print("Looking for: "+key);
         Document doc = collection.find(eq(" measurement_description.key", key)).first();
         assert doc != null;
         return doc.toJson();
