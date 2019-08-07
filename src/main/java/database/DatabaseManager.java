@@ -38,8 +38,6 @@ public class DatabaseManager {
             DNS_TYPE = "dns_lookup",
             HTTP_TYPE = "http",
             TRACERT_TYPE = "traceroute";
-
-    private static final String CONFIG_FILE = ".config.json";
     private static JSONObject CONFIGS;
 
     private static String DB_NAME = "mydb";
@@ -50,16 +48,8 @@ public class DatabaseManager {
     private static MongoCollection<Document> collection;
 
 
-    public static boolean init() {
-        String text = null;
-        try {
-            text = new String(Files.readAllBytes(Paths.get(CONFIG_FILE)), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (text == null)
-            return false;
-        CONFIGS = new JSONObject(text);
+    public static boolean init(JSONObject config) {
+        CONFIGS = config;
         return connectInflux() && connectMongo();
 
 
