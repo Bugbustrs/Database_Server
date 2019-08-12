@@ -232,8 +232,12 @@ public class DatabaseManager {
      * @param measurementType the type of measurement we want to return
      * @return String representation of the JSon representing.
      */
-    public static String getMeasurement(String measurementType) {
-        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
+    public static String getMeasurement(String measurementType, String jobId) {
+        QueryResult queryResult;
+        if(jobId==null||jobId.isEmpty())
+            queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
+        else
+            queryResult = influxDB.query(new Query("SELECT * FROM  WHERE taskKey="+jobId + measurementType, DB_NAME));
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType) {
