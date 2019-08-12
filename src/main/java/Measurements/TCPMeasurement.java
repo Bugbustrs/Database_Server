@@ -6,12 +6,10 @@ import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-@Measurement(name="tcpthroughput")
-public class TCPMeasurement {
-
-    @Column(name="time")
-    private Instant time;
+@Measurement(name="tcpthroughput", timeUnit = TimeUnit.MILLISECONDS)
+public class TCPMeasurement extends Measurements{
 
     @Column(name="tcp_speed_results")
     private String speedValues;
@@ -21,14 +19,6 @@ public class TCPMeasurement {
 
     @Column(name = "duration")
     private Double measurementDuration;
-
-    public Instant getTime() {
-        return time;
-    }
-
-    public void setTime(Instant time) {
-        this.time = time;
-    }
 
     public String getSpeedValues() {
         return speedValues;

@@ -20,10 +20,6 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -57,21 +53,19 @@ public class DatabaseManager {
 
     public static void writeValues(JSONObject jsonObject) {
         System.out.println(jsonObject.toString());
-        JSONObject values = jsonObject.getJSONObject("values");
-        long time = jsonObject.getLong("timestamp");
         Point p;
         switch ((String) jsonObject.get("type")) {
             case TCP_TYPE:
-                p = createTCPPoint(time, values);
+                p = createTCPPoint(jsonObject);
                 break;
             case PING_TYPE:
-                p = createPingPoint(time, values);
+                p = createPingPoint(jsonObject);
                 break;
             case DNS_TYPE:
-                p = createDNSPoint(time, values);
+                p = createDNSPoint(jsonObject);
                 break;
             case HTTP_TYPE:
-                p = createHttpPoint(time, values);
+                p = createHttpPoint(jsonObject);
                 break;
             case TRACERT_TYPE:
                 //to be consindered later
@@ -87,8 +81,11 @@ public class DatabaseManager {
         }
     }
 
-    private static Point createTraceRTPoint(long time, JSONObject measurementValues) {
-        TracerouteMeasurement tracerouteMeasurement = new TracerouteMeasurement();
+    private static Point createTraceRTPoint(JSONObject jsonObject) {
+        JSONObject measurementValues = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
+
+        TracerouteMeasurement tracerouteMeasurement = (TracerouteMeasurement) buildMeasurements(jsonObject, TracerouteMeasurement.class);
 
         return Point.measurementByPOJO(TracerouteMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
@@ -96,8 +93,11 @@ public class DatabaseManager {
                 .build();
     }
 
-    private static Point createHttpPoint(long time, JSONObject measurementValues) {
-        HTTPMeasurement httpMeasurement = new HTTPMeasurement();
+    private static Point createHttpPoint(JSONObject jsonObject) {
+        JSONObject measurementValues = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
+
+        HTTPMeasurement httpMeasurement = (HTTPMeasurement) buildMeasurements(jsonObject, HTTPMeasurement.class);
 
         httpMeasurement.setHttpResultCode(Integer.parseInt(measurementValues.getString("code")));
         double duration = Double.parseDouble(measurementValues.getString("time_ms"));
@@ -109,8 +109,11 @@ public class DatabaseManager {
                 .build();
     }
 
-    private static Point createDNSPoint(long time, JSONObject measurementValues) {
-        DNSLookupMeasurement dnsLookupMeasurement = new DNSLookupMeasurement();
+    private static Point createDNSPoint(JSONObject jsonObject) {
+        JSONObject measurementValues = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
+
+        DNSLookupMeasurement dnsLookupMeasurement = (DNSLookupMeasurement) buildMeasurements(jsonObject, DNSLookupMeasurement.class);
 
         dnsLookupMeasurement.setHostAddress(measurementValues.getString("address"));
         dnsLookupMeasurement.setHostName(measurementValues.getString("real_hostname"));
@@ -121,8 +124,11 @@ public class DatabaseManager {
                 .build();
     }
 
-    private static Point createPingPoint(long time, JSONObject measurementValues) {
-        PingMeasurement pingMeasurement = new PingMeasurement();
+    private static Point createPingPoint(JSONObject jsonObject) {
+        JSONObject measurementValues = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
+
+        PingMeasurement pingMeasurement = (PingMeasurement) buildMeasurements(jsonObject, PingMeasurement.class);
         double mean, max, std;
 
         mean = Double.parseDouble(measurementValues.getString("mean_rtt_ms"));
@@ -141,8 +147,10 @@ public class DatabaseManager {
                 .build();
     }
 
-    private static Point createTCPPoint(long time, JSONObject measurementValues) {
-        TCPMeasurement tcpMeasurement = new TCPMeasurement();
+    private static Point createTCPPoint(JSONObject jsonObject) {
+        JSONObject measurementValues = jsonObject.getJSONObject("values");
+        long time = jsonObject.getLong("timestamp");
+        TCPMeasurement tcpMeasurement = (TCPMeasurement) buildMeasurements(jsonObject, TCPMeasurement.class);
 
         tcpMeasurement.setSpeedValues(measurementValues.getString("tcp_speed_results"));
         tcpMeasurement.setDataLimitExceeded(Boolean.parseBoolean(measurementValues.getString("data_limit_exceeded")));
@@ -260,9 +268,22 @@ public class DatabaseManager {
     }
 
     public static String getMeasurementDetails(String key) {
-        System.out.print("Looking for: "+key);
+        System.out.print("Looking for: " + key);
         Document doc = collection.find(eq(" measurement_description.key", key)).first();
         assert doc != null;
         return doc.toJson();
+    }
+
+    //@TODO this should be used to create the measurement object to write to Mongo
+    private static Measurements buildMeasurements(JSONObject object, Class<? extends Measurements> T) {
+        try {
+            Measurements measurements = T.newInstance();
+            measurements.setUserName(object.getString("account_name"));
+            measurements.setExperiment(object.getBoolean("is_experiment"));
+            return measurements;
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

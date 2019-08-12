@@ -5,13 +5,11 @@ import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 
-@Measurement(name = "ping")
-public class PingMeasurement {
-    @Column(name = "time")
-    private Instant time;
-
+@Measurement(name = "ping", timeUnit = TimeUnit.MILLISECONDS)
+public class PingMeasurement extends Measurements{
     @Column(name ="target_ip ")
     private String  targetIpAddress;
 
@@ -26,14 +24,6 @@ public class PingMeasurement {
 
     @Column(name = "stddev_rtt_ms")
     private Double stddevRttMs;
-
-    public Instant getTime() {
-        return time;
-    }
-
-    public void setTime(Instant time) {
-        this.time = time;
-    }
 
     public String getTargetIpAddress() {
         return targetIpAddress;
