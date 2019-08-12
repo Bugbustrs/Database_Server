@@ -24,7 +24,6 @@ public class Measurements {
     public String getTaskKey() {
         return taskKey;
     }
-
     public void setUserName(String userName) {
         this.userName = userName;
     }
