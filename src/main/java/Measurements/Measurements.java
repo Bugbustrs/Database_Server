@@ -11,9 +11,19 @@ public class Measurements {
     @Column(name = "isExperiment")
     private boolean isExperiment;
 
+    @Column(name="JobID", tag = true)
+    private String taskKey;
+
     @Column(name = "username")
     private String userName;
 
+    public void setTaskKey(String taskKey) {
+        this.taskKey = taskKey;
+    }
+
+    public String getTaskKey() {
+        return taskKey;
+    }
     public void setUserName(String userName) {
         this.userName = userName;
     }

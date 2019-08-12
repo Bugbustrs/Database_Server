@@ -280,6 +280,7 @@ public class DatabaseManager {
             Measurements measurements = T.newInstance();
             measurements.setUserName(object.getString("account_name"));
             measurements.setExperiment(object.getBoolean("is_experiment"));
+            measurements.setTaskKey(object.getString("task_key"));
             return measurements;
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
