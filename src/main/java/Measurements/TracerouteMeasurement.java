@@ -5,12 +5,10 @@ import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
-@Measurement(name="traceroute")
-public class TracerouteMeasurement {
-    @Column(name="time")
-    private Instant time;
-
+@Measurement(name="traceroute", timeUnit = TimeUnit.MILLISECONDS)
+public class TracerouteMeasurement extends Measurements{
     @Column(name="num_hops")
     private Integer numberOfHops;
 
@@ -19,14 +17,6 @@ public class TracerouteMeasurement {
 
     @Column(name="hop_N_rtt_ms")
     private String listOfRTTs;
-
-    public Instant getTime() {
-        return time;
-    }
-
-    public void setTime(Instant time) {
-        this.time = time;
-    }
 
     public Integer getNumberOfHops() {
         return numberOfHops;

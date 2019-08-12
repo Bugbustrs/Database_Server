@@ -5,26 +5,16 @@ import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
-@Measurement(name = "http")
-public class HTTPMeasurement {
-
-    @Column(name="time")
-    private Instant time;
+@Measurement(name = "http", timeUnit = TimeUnit.MILLISECONDS)
+public class HTTPMeasurement extends Measurements {
 
     @Column(name="time_ms")
     private Double timeTakenMs;
 
     @Column(name="code")
     private int httpResultCode;
-
-    public Instant getTime() {
-        return time;
-    }
-
-    public void setTime(Instant time) {
-        this.time = time;
-    }
 
     public Double getTimeTakenMs() {
         return timeTakenMs;
