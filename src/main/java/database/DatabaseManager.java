@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -18,6 +19,7 @@ import org.influxdb.dto.Pong;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -41,7 +43,7 @@ public class DatabaseManager {
     private static InfluxDB influxDB;
     private static MongoDatabase mongoDatabase;
     private static com.mongodb.client.MongoClient mongoClient;
-    private static MongoCollection<Document> collection;
+    private static MongoCollection<Document> jobData, users, researchers;
 
 
     public static boolean init(JSONObject config) {
@@ -189,7 +191,6 @@ public class DatabaseManager {
             String dbName = CONFIGS.getString("mongoDBName");
             String userDetails = CONFIGS.getString("mongoDBUser");
             String pwdDetails = CONFIGS.getString("mongoDBPassword");
-            String collectionName = CONFIGS.getString("mongoCollName");
             MongoCredential credential = null;
             if (!userDetails.isEmpty()) {
                 credential = MongoCredential.createCredential(userDetails, dbName, pwdDetails.toCharArray());
@@ -218,7 +219,10 @@ public class DatabaseManager {
                 }
             }
             mongoDatabase = mongoClient.getDatabase(dbName);
-            collection = mongoDatabase.getCollection(collectionName);
+            jobData = mongoDatabase.getCollection(CONFIGS.getString("job_data"));
+            users = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
+//            adminUsers = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
+            researchers = mongoDatabase.getCollection(CONFIGS.getString("researchers"));
             return true;
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -234,10 +238,10 @@ public class DatabaseManager {
      */
     public static String getMeasurement(String measurementType, String jobId) {
         QueryResult queryResult;
-        if(jobId==null||jobId.isEmpty())
+        if (jobId == null || jobId.isEmpty())
             queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
         else
-            queryResult = influxDB.query(new Query("SELECT * FROM  WHERE taskKey="+jobId + measurementType, DB_NAME));
+            queryResult = influxDB.query(new Query("SELECT * FROM  WHERE taskKey=" + jobId + measurementType, DB_NAME));
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType) {
@@ -265,7 +269,7 @@ public class DatabaseManager {
         try {
             System.out.println(measurementDescr);
             Document document = Document.parse(measurementDescr);
-            collection.insertOne(document);
+            jobData.insertOne(document);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -273,9 +277,27 @@ public class DatabaseManager {
 
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
-        Document doc = collection.find(eq(" measurement_description.key", key)).first();
+        Document doc = jobData.find(eq(" measurement_description.key", key)).first();
         assert doc != null;
         return doc.toJson();
+    }
+
+    public static String getUserJobs(String userID) {
+        System.out.print("Looking for data for: " + userID);
+        FindIterable<Document> doc = jobData.find(eq(" user", userID));
+        assert doc != null;
+        JSONArray jobs = new JSONArray();
+        for (Document d : doc) {
+            jobs.put(new JSONObject(d.toJson()));
+        }
+        return jobs.toString();
+    }
+
+    public static boolean isUserContained(String userId) {
+        System.out.print("Looking for: " + userId);
+        Document doc;
+        doc = users.find(eq(" user_name", userId)).first();
+        return doc != null;
     }
 
     //@TODO this should be used to create the measurement object to write to Mongo
