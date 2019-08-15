@@ -287,7 +287,7 @@ public class DatabaseManager {
 
     public static String getUserJobs(String userID) {
         System.out.print("Looking for data for: " + userID);
-        FindIterable<Document> doc = jobData.find(eq(" user", userID));
+        FindIterable<Document> doc = jobData.find(eq(" user", hashUserName(userID)));
         assert doc != null;
         JSONArray jobs = new JSONArray();
         for (Document d : doc) {
@@ -296,11 +296,11 @@ public class DatabaseManager {
         return jobs.toString();
     }
 
-    public static boolean isUserContained(String userId) {
+    public static boolean isUserContained(String userId, String type) {
         System.out.print("Looking for: " + userId);
         Document doc;
         doc = users.find(eq(" user_name", userId)).first();
-        return doc != null;
+        return doc != null && doc.getString("user_type").equals(type);
     }
 
     private static Measurements buildMeasurements(JSONObject object, Class<? extends Measurements> T) {
