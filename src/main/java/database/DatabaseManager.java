@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -18,8 +19,12 @@ import org.influxdb.dto.Pong;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +46,7 @@ public class DatabaseManager {
     private static InfluxDB influxDB;
     private static MongoDatabase mongoDatabase;
     private static com.mongodb.client.MongoClient mongoClient;
-    private static MongoCollection<Document> collection;
+    private static MongoCollection<Document> jobData, users, researchers;
 
 
     public static boolean init(JSONObject config) {
@@ -189,7 +194,6 @@ public class DatabaseManager {
             String dbName = CONFIGS.getString("mongoDBName");
             String userDetails = CONFIGS.getString("mongoDBUser");
             String pwdDetails = CONFIGS.getString("mongoDBPassword");
-            String collectionName = CONFIGS.getString("mongoCollName");
             MongoCredential credential = null;
             if (!userDetails.isEmpty()) {
                 credential = MongoCredential.createCredential(userDetails, dbName, pwdDetails.toCharArray());
@@ -218,7 +222,10 @@ public class DatabaseManager {
                 }
             }
             mongoDatabase = mongoClient.getDatabase(dbName);
-            collection = mongoDatabase.getCollection(collectionName);
+            jobData = mongoDatabase.getCollection(CONFIGS.getString("job_data"));
+            users = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
+//            adminUsers = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
+            researchers = mongoDatabase.getCollection(CONFIGS.getString("researchers"));
             return true;
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -232,8 +239,12 @@ public class DatabaseManager {
      * @param measurementType the type of measurement we want to return
      * @return String representation of the JSon representing.
      */
-    public static String getMeasurement(String measurementType) {
-        QueryResult queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
+    public static String getMeasurement(String measurementType, String jobId) {
+        QueryResult queryResult;
+        if (jobId == null || jobId.isEmpty())
+            queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
+        else
+            queryResult = influxDB.query(new Query("SELECT * FROM  WHERE taskKey=" + jobId + measurementType, DB_NAME));
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType) {
@@ -261,7 +272,7 @@ public class DatabaseManager {
         try {
             System.out.println(measurementDescr);
             Document document = Document.parse(measurementDescr);
-            collection.insertOne(document);
+            jobData.insertOne(document);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -269,16 +280,34 @@ public class DatabaseManager {
 
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
-        Document doc = collection.find(eq(" measurement_description.key", key)).first();
+        Document doc = jobData.find(eq(" measurement_description.key", key)).first();
         assert doc != null;
         return doc.toJson();
     }
 
-    //@TODO this should be used to create the measurement object to write to Mongo
+    public static String getUserJobs(String userID) {
+        System.out.print("Looking for data for: " + userID);
+        FindIterable<Document> doc = jobData.find(eq(" user", hashUserName(userID)));
+        assert doc != null;
+        JSONArray jobs = new JSONArray();
+        for (Document d : doc) {
+            jobs.put(new JSONObject(d.toJson()));
+        }
+        return jobs.toString();
+    }
+
+    public static boolean isUserContained(String userId, String type) {
+        System.out.print("Looking for: " + userId);
+        Document doc;
+        doc = users.find(eq(" user_name", userId)).first();
+        return doc != null && doc.getString("user_type").equals(type);
+    }
+
     private static Measurements buildMeasurements(JSONObject object, Class<? extends Measurements> T) {
         try {
             Measurements measurements = T.newInstance();
-            measurements.setUserName(object.getString("account_name"));
+            String user = object.getString("account_name");
+            measurements.setUserName(hashUserName(user));
             measurements.setExperiment(object.getBoolean("is_experiment"));
             measurements.setTaskKey(object.getString("task_key"));
             return measurements;
@@ -286,5 +315,24 @@ public class DatabaseManager {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private static String hashUserName(String userName) {
+        if (userName.equals("Anonymous")) {
+            return userName;
+        }
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        byte[] hashInBytes = md.digest(userName.getBytes(StandardCharsets.UTF_8));
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashInBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }
