@@ -22,6 +22,9 @@ import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -284,7 +287,7 @@ public class DatabaseManager {
 
     public static String getUserJobs(String userID) {
         System.out.print("Looking for data for: " + userID);
-        FindIterable<Document> doc = jobData.find(eq(" user", userID));
+        FindIterable<Document> doc = jobData.find(eq(" user", hashUserName(userID)));
         assert doc != null;
         JSONArray jobs = new JSONArray();
         for (Document d : doc) {
@@ -293,18 +296,18 @@ public class DatabaseManager {
         return jobs.toString();
     }
 
-    public static boolean isUserContained(String userId) {
+    public static boolean isUserContained(String userId, String type) {
         System.out.print("Looking for: " + userId);
         Document doc;
         doc = users.find(eq(" user_name", userId)).first();
-        return doc != null;
+        return doc != null && doc.getString("user_type").equals(type);
     }
 
-    //@TODO this should be used to create the measurement object to write to Mongo
     private static Measurements buildMeasurements(JSONObject object, Class<? extends Measurements> T) {
         try {
             Measurements measurements = T.newInstance();
-            measurements.setUserName(object.getString("account_name"));
+            String user = object.getString("account_name");
+            measurements.setUserName(hashUserName(user));
             measurements.setExperiment(object.getBoolean("is_experiment"));
             measurements.setTaskKey(object.getString("task_key"));
             return measurements;
@@ -312,5 +315,24 @@ public class DatabaseManager {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private static String hashUserName(String userName) {
+        if (userName.equals("Anonymous")) {
+            return userName;
+        }
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        byte[] hashInBytes = md.digest(userName.getBytes(StandardCharsets.UTF_8));
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashInBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }
