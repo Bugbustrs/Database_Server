@@ -14,10 +14,7 @@ import org.apache.commons.math3.util.Precision;
 import org.bson.Document;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
-import org.influxdb.dto.Point;
-import org.influxdb.dto.Pong;
-import org.influxdb.dto.Query;
-import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.*;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
@@ -42,18 +40,16 @@ public class DatabaseManager {
     private static JSONObject CONFIGS;
 
     private static String DB_NAME = "mydb";
-
+    private static String RP_Name = "autogen";
     private static InfluxDB influxDB;
     private static MongoDatabase mongoDatabase;
     private static com.mongodb.client.MongoClient mongoClient;
-    private static MongoCollection<Document> jobData, users, researchers;
+    private static MongoCollection<Document> jobData, users, researchers, personalData;
 
 
     public static boolean init(JSONObject config) {
         CONFIGS = config;
         return connectInflux() && connectMongo();
-
-
     }
 
     public static void writeValues(JSONObject jsonObject) {
@@ -81,7 +77,6 @@ public class DatabaseManager {
                 break;
         }
         if (p != null) {
-            String RP_Name = "autogen";
             influxDB.write(DB_NAME, RP_Name, p);
         }
     }
@@ -315,6 +310,21 @@ public class DatabaseManager {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static void writePcapData(List<PcapMeasurements> pcapMeasurements) {
+        BatchPoints batchPoints = BatchPoints
+                .database(DB_NAME)
+                .tag("async", "true")
+                .retentionPolicy(RP_Name)
+                .consistency(InfluxDB.ConsistencyLevel.ALL)
+                .build();
+        for (PcapMeasurements p : pcapMeasurements) {
+            batchPoints.point(Point.measurementByPOJO(PcapMeasurements.class)
+                    .time(p.getTime().toEpochMilli(), TimeUnit.MICROSECONDS)
+                    .build());
+        }
+        influxDB.write(batchPoints);
     }
 
     private static String hashUserName(String userName) {
