@@ -282,12 +282,12 @@ public class DatabaseManager {
 
     public static String getMeasurementOfTypes(String type){
         System.out.print("Looking for: " + type);
-        FindIterable<Document> doc = jobData.find(eq(" measurement_description.type", type));
+        FindIterable<Document> doc = jobData.find(eq("job_description.measurement_description.type", type));
         return convertIterable(doc);
     }
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
-        Document doc = jobData.find(eq(" measurement_description.key", key)).first();
+        Document doc = jobData.find(eq("job_description.measurement_description.key", key)).first();
         assert doc != null;
         return doc.toJson();
     }
@@ -303,6 +303,7 @@ public class DatabaseManager {
         for (Document d : f) {
             jobs.put(new JSONObject(d.toJson()));
         }
+        System.out.println("Resulting array is "+jobs);
         return jobs.toString();
     }
     public static boolean isUserContained(String userId, String type) {
