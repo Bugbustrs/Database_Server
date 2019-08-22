@@ -312,7 +312,7 @@ public class DatabaseManager {
             String user = object.getString("account_name");
             measurements.setUserName(hashUserName(user));
             measurements.setExperiment(object.getBoolean("is_experiment"));
-            if(object.has("task_key"))
+            if(object.get("task_key")!=null)
                 measurements.setTaskKey(object.getString("task_key"));
             return measurements;
         } catch (InstantiationException | IllegalAccessException e) {
