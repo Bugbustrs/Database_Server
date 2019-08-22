@@ -282,7 +282,7 @@ public class DatabaseManager {
 
     public static String getMeasurementOfTypes(String type){
         System.out.print("Looking for: " + type);
-        FindIterable<Document> doc = jobData.find(eq(" measurement_description.key", type));
+        FindIterable<Document> doc = jobData.find(eq(" measurement_description.type", type));
         return convertIterable(doc);
     }
     public static String getMeasurementDetails(String key) {
