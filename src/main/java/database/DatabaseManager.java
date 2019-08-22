@@ -338,12 +338,9 @@ public class DatabaseManager {
     public static void writePersonalData(String data) {
         try {
             System.out.println(data);
-            JSONArray array = new JSONArray(data);
-            for (Object o : array) {
-                JSONObject object = (JSONObject) o;
-                object.put("user_name", hashUserName(object.getString("user_name")));
-            }
-            Document document = Document.parse(array.toString());
+            JSONObject object = new JSONObject(data);
+            object.put("user_name", hashUserName(object.getString("user_name")));
+            Document document = Document.parse(object.toString());
             personalData.insertOne(document);
         } catch (Exception ex) {
             ex.printStackTrace();
