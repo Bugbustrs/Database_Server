@@ -335,7 +335,7 @@ public class DatabaseManager {
         influxDB.write(batchPoints);
     }
 
-    public void writePersonalData(String data) {
+    public static void writePersonalData(String data) {
         try {
             System.out.println(data);
             JSONArray array = new JSONArray(data);
@@ -350,7 +350,7 @@ public class DatabaseManager {
         }
     }
 
-    public String readPersonalData(String username, long startTimeMillis, long endTimeMillis) {
+    public static String readPersonalData(String username, long startTimeMillis, long endTimeMillis) {
         username = hashUserName(username);
         BasicDBObject query = new BasicDBObject("user_name", username)
                 .append("date", new BasicDBObject("$gte", startTimeMillis).append("$lte", endTimeMillis));
