@@ -3,7 +3,6 @@ package database;
 import Measurements.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
@@ -281,6 +280,11 @@ public class DatabaseManager {
         }
     }
 
+    public static String getMeasurementOfTypes(String type){
+        System.out.print("Looking for: " + type);
+        FindIterable<Document> doc = jobData.find(eq(" measurement_description.key", type));
+        return convertIterable(doc);
+    }
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
         Document doc = jobData.find(eq(" measurement_description.key", key)).first();
@@ -291,14 +295,16 @@ public class DatabaseManager {
     public static String getUserJobs(String userID) {
         System.out.print("Looking for data for: " + userID);
         FindIterable<Document> doc = jobData.find(eq(" user", hashUserName(userID)));
-        assert doc != null;
+        return convertIterable(doc);
+    }
+
+    private static String convertIterable(FindIterable<Document> f){
         JSONArray jobs = new JSONArray();
-        for (Document d : doc) {
+        for (Document d : f) {
             jobs.put(new JSONObject(d.toJson()));
         }
         return jobs.toString();
     }
-
     public static boolean isUserContained(String userId, String type) {
         System.out.print("Looking for: " + userId);
         Document doc;
