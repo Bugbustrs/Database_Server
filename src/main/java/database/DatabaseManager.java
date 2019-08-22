@@ -3,6 +3,8 @@ package database;
 import Measurements.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -14,10 +16,7 @@ import org.apache.commons.math3.util.Precision;
 import org.bson.Document;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
-import org.influxdb.dto.Point;
-import org.influxdb.dto.Pong;
-import org.influxdb.dto.Query;
-import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.*;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
@@ -42,18 +42,14 @@ public class DatabaseManager {
     private static JSONObject CONFIGS;
 
     private static String DB_NAME = "mydb";
-
+    private static String RP_Name = "autogen";
     private static InfluxDB influxDB;
-    private static MongoDatabase mongoDatabase;
-    private static com.mongodb.client.MongoClient mongoClient;
-    private static MongoCollection<Document> jobData, users, researchers;
+    private static MongoCollection<Document> jobData, users, researchers, personalData, tempData;
 
 
     public static boolean init(JSONObject config) {
         CONFIGS = config;
         return connectInflux() && connectMongo();
-
-
     }
 
     public static void writeValues(JSONObject jsonObject) {
@@ -73,15 +69,19 @@ public class DatabaseManager {
                 p = createHttpPoint(jsonObject);
                 break;
             case TRACERT_TYPE:
-                //to be consindered later
-//                p = createTraceRTPoint(time, values);
-//                break;
+                try {
+                    System.out.println(jsonObject);
+                    Document document = Document.parse(jsonObject.toString());
+                    tempData.insertOne(document);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                return;
             default:
                 p = null;
                 break;
         }
         if (p != null) {
-            String RP_Name = "autogen";
             influxDB.write(DB_NAME, RP_Name, p);
         }
     }
@@ -198,6 +198,7 @@ public class DatabaseManager {
             if (!userDetails.isEmpty()) {
                 credential = MongoCredential.createCredential(userDetails, dbName, pwdDetails.toCharArray());
             }
+            com.mongodb.client.MongoClient mongoClient;
             if (databaseAddress.isEmpty()) {
                 if (credential == null)
                     mongoClient = MongoClients.create();
@@ -221,9 +222,11 @@ public class DatabaseManager {
                                     .build());
                 }
             }
-            mongoDatabase = mongoClient.getDatabase(dbName);
+            MongoDatabase mongoDatabase = mongoClient.getDatabase(dbName);
             jobData = mongoDatabase.getCollection(CONFIGS.getString("job_data"));
             users = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
+            personalData = mongoDatabase.getCollection(CONFIGS.getString("personal"));
+            tempData = mongoDatabase.getCollection(CONFIGS.getString("temp"));
 //            adminUsers = mongoDatabase.getCollection(CONFIGS.getString("basic_users"));
             researchers = mongoDatabase.getCollection(CONFIGS.getString("researchers"));
             return true;
@@ -315,6 +318,44 @@ public class DatabaseManager {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static void writePcapData(List<PcapMeasurements> pcapMeasurements) {
+        BatchPoints batchPoints = BatchPoints
+                .database(DB_NAME)
+                .tag("async", "true")
+                .retentionPolicy(RP_Name)
+                .consistency(InfluxDB.ConsistencyLevel.ALL)
+                .build();
+        for (PcapMeasurements p : pcapMeasurements) {
+            batchPoints.point(Point.measurementByPOJO(PcapMeasurements.class)
+                    .time(p.getTime().toEpochMilli(), TimeUnit.MICROSECONDS)
+                    .build());
+        }
+        influxDB.write(batchPoints);
+    }
+
+    public void writePersonalData(String data) {
+        try {
+            System.out.println(data);
+            JSONArray array = new JSONArray(data);
+            for (Object o : array) {
+                JSONObject object = (JSONObject) o;
+                object.put("user_name", hashUserName(object.getString("user_name")));
+            }
+            Document document = Document.parse(array.toString());
+            personalData.insertOne(document);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public String readPersonalData(String username, long startTimeMillis, long endTimeMillis) {
+        username = hashUserName(username);
+        BasicDBObject query = new BasicDBObject("user_name", username)
+                .append("date", new BasicDBObject("$gte", startTimeMillis).append("$lte", endTimeMillis));
+        FindIterable<Document> results = personalData.find(query);
+        return results.toString();
     }
 
     private static String hashUserName(String userName) {
