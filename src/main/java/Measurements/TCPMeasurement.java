@@ -11,18 +11,6 @@ import java.util.concurrent.TimeUnit;
 @Measurement(name="tcpthroughput", timeUnit = TimeUnit.MILLISECONDS)
 public class TCPMeasurement extends Measurements{
 
-    @Column(name = "time")
-    private Instant time;
-
-    @Column(name = "isExperiment")
-    private boolean isExperiment;
-
-    @Column(name="JobID", tag = true)
-    private String taskKey;
-
-    @Column(name = "username")
-    private String userName;
-
     @Column(name="tcp_speed_results")
     private String speedValues;
 
