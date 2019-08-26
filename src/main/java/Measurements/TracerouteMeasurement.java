@@ -9,6 +9,19 @@ import java.util.concurrent.TimeUnit;
 
 @Measurement(name="traceroute", timeUnit = TimeUnit.MILLISECONDS)
 public class TracerouteMeasurement extends Measurements{
+
+    @Column(name = "time")
+    private Instant time;
+
+    @Column(name = "isExperiment")
+    private boolean isExperiment;
+
+    @Column(name="JobID", tag = true)
+    private String taskKey;
+
+    @Column(name = "username")
+    private String userName;
+
     @Column(name="num_hops")
     private Integer numberOfHops;
 

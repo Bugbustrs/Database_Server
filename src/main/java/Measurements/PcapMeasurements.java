@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 
 @Measurement(name = "pcap_data", timeUnit = TimeUnit.MILLISECONDS)
 public class PcapMeasurements {
-
     @Column(name = "time")
     private Instant time;
 

@@ -4,10 +4,22 @@ package Measurements;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 @Measurement(name = "http", timeUnit = TimeUnit.MILLISECONDS)
 public class HTTPMeasurement extends Measurements {
+    @Column(name = "time")
+    private Instant time;
+
+    @Column(name = "isExperiment")
+    private boolean isExperiment;
+
+    @Column(name="JobID", tag = true)
+    private String taskKey;
+
+    @Column(name = "username")
+    private String userName;
 
     @Column(name="time_ms")
     private Double timeTakenMs;
