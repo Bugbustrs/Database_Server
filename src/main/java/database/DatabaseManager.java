@@ -320,9 +320,8 @@ public class DatabaseManager {
             case TCP_TYPE:
             case TRACERT_TYPE:
             case DNS_TYPE:
-                return object.getString("target");
             case PING_TYPE:
-                return object.getString("target_ip");
+                return object.getString("target");
             case HTTP_TYPE:
                 return object.getString("url");
             default:
