@@ -17,6 +17,21 @@ public class Measurements {
     @Column(name = "username")
     private String userName;
 
+    public boolean isExperiment() {
+        return isExperiment;
+    }
+
+    public String getTarget() {
+        return target;
+    }
+
+    public void setTarget(String target) {
+        this.target = target;
+    }
+
+    @Column(name="target")
+    private String target;
+
     public void setTaskKey(String taskKey) {
         this.taskKey = taskKey;
     }

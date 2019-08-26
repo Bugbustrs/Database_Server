@@ -280,11 +280,12 @@ public class DatabaseManager {
         }
     }
 
-    public static String getMeasurementOfTypes(String type){
+    public static String getMeasurementOfTypes(String type) {
         System.out.print("Looking for: " + type);
         FindIterable<Document> doc = jobData.find(eq("job_description.measurement_description.type", type));
         return convertIterable(doc);
     }
+
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
         Document doc = jobData.find(eq("job_description.measurement_description.key", key)).first();
@@ -298,19 +299,35 @@ public class DatabaseManager {
         return convertIterable(doc);
     }
 
-    private static String convertIterable(FindIterable<Document> f){
+    private static String convertIterable(FindIterable<Document> f) {
         JSONArray jobs = new JSONArray();
         for (Document d : f) {
             jobs.put(new JSONObject(d.toJson()));
         }
-        System.out.println("Resulting array is "+jobs);
+        System.out.println("Resulting array is " + jobs);
         return jobs.toString();
     }
+
     public static boolean isUserContained(String userId, String type) {
         System.out.print("Looking for: " + userId);
         Document doc;
         doc = users.find(eq(" user_name", userId)).first();
         return doc != null && doc.getString("user_type").equals(type);
+    }
+
+    private static String getTargetKey(JSONObject object, String type) {
+        switch (type) {
+            case TCP_TYPE:
+            case TRACERT_TYPE:
+            case DNS_TYPE:
+                return object.getString("target");
+            case PING_TYPE:
+                return object.getString("target_ip");
+            case HTTP_TYPE:
+                return object.getString("url");
+            default:
+                return "";
+        }
     }
 
     private static Measurements buildMeasurements(JSONObject object, Class<? extends Measurements> T) {
@@ -319,7 +336,8 @@ public class DatabaseManager {
             String user = object.getString("account_name");
             measurements.setUserName(hashUserName(user));
             measurements.setExperiment(object.getBoolean("is_experiment"));
-            if(measurements.getIsExperiment())
+            measurements.setTarget(getTargetKey(object.getJSONObject("parameters"), object.getString("type")));
+            if (measurements.getIsExperiment())
                 measurements.setTaskKey(object.getString("task_key"));
             return measurements;
         } catch (InstantiationException | IllegalAccessException e) {
