@@ -247,8 +247,8 @@ public class DatabaseManager {
         if (jobId == null || jobId.isEmpty())
             queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
         else
-                queryResult = influxDB.query(new Query("SELECT * FROM "+ measurementType + " where taskKey=" + jobId, DB_NAME));
-        System.out.println(queryResult);
+                queryResult = influxDB.query(new Query("SELECT * FROM "+ measurementType + " where taskKey = " + jobId, DB_NAME));
+        System.out.println("Result: "+queryResult);
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType) {
