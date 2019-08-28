@@ -13,7 +13,7 @@ public class Measurements {
     @Column(name = "isExperiment")
     private boolean isExperiment;
 
-    @Column(name="JobID", tag = true)
+    @Column(name="taskKey", tag = true)
     private String taskKey;
 
     @Column(name = "username")
