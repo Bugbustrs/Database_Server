@@ -1,9 +1,11 @@
 package Measurements;
 
 import org.influxdb.annotation.Column;
+import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
 
+@Measurement(name="SuperMeasurement")
 public class Measurements {
     @Column(name = "time")
     private Instant time;

@@ -81,6 +81,7 @@ public class DatabaseManager {
                 break;
         }
         if (p != null) {
+            System.out.println(p);
             influxDB.write(DB_NAME, RP_Name, p);
         }
     }
@@ -144,8 +145,7 @@ public class DatabaseManager {
         pingMeasurement.setMeanRttMS(Precision.round(mean, 2));
         pingMeasurement.setMaxRttMs(Precision.round(max, 2));
         pingMeasurement.setStddevRttMs(Precision.round(std, 2));
-
-        return Point.measurementByPOJO(PingMeasurement.class)
+        return Point.measurementByPOJO(Measurements.class)
                 .time(time, TimeUnit.MICROSECONDS)
                 .addFieldsFromPOJO(pingMeasurement)
                 .build();
