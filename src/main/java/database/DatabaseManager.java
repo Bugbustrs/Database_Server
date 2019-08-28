@@ -145,7 +145,7 @@ public class DatabaseManager {
         pingMeasurement.setMeanRttMS(Precision.round(mean, 2));
         pingMeasurement.setMaxRttMs(Precision.round(max, 2));
         pingMeasurement.setStddevRttMs(Precision.round(std, 2));
-        return Point.measurementByPOJO(Measurements.class)
+        return Point.measurementByPOJO(PingMeasurement.class)
                 .time(time, TimeUnit.MICROSECONDS)
                 .addFieldsFromPOJO(pingMeasurement)
                 .build();
@@ -242,11 +242,13 @@ public class DatabaseManager {
      * @return String representation of the JSon representing.
      */
     public static String getMeasurement(String measurementType, String jobId) {
+        System.out.println(measurementType + " : " + jobId);
         QueryResult queryResult;
         if (jobId == null || jobId.isEmpty())
             queryResult = influxDB.query(new Query("SELECT * FROM " + measurementType, DB_NAME));
         else
             queryResult = influxDB.query(new Query("SELECT * FROM  WHERE taskKey=" + jobId + measurementType, DB_NAME));
+        System.out.println(queryResult);
         Gson gsosn = new GsonBuilder().create();
         InfluxDBResultMapper resultMapper = new InfluxDBResultMapper(); // thread-safe - can be reused
         switch (measurementType) {
@@ -338,6 +340,8 @@ public class DatabaseManager {
             measurements.setTarget(getTargetKey(object.getJSONObject("parameters"), object.getString("type")));
             if (measurements.getIsExperiment())
                 measurements.setTaskKey(object.getString("task_key"));
+            else
+                measurements.setTaskKey("N.A");
             return measurements;
         } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
