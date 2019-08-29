@@ -33,7 +33,7 @@ public class DatabaseManager {
     /**
      * The different types of measurements we can write to the database
      */
-    private static final String TCP_TYPE = "tcpthroughput",
+    private static final String TCP_TYPE = "tcp_speed_test",
             PING_TYPE = "ping",
             DNS_TYPE = "dns_lookup",
             HTTP_TYPE = "http",
