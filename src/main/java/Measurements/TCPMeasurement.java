@@ -4,11 +4,9 @@ package Measurements;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Measurement(name="tcpthroughput", timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(name="tcp_speed_tesr", timeUnit = TimeUnit.MILLISECONDS)
 public class TCPMeasurement extends Measurements{
 
     @Column(name="tcp_speed_results")

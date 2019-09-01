@@ -124,7 +124,8 @@ public class DatabaseManager {
         dnsLookupMeasurement.setHostName(measurementValues.getString("real_hostname"));
         dnsLookupMeasurement.setTimeTaken(measurementValues.getDouble("time_ms"));
 
-        return Point.measurementByPOJO(DNSLookupMeasurement.class).time(time, TimeUnit.MICROSECONDS)
+        return Point.measurementByPOJO(DNSLookupMeasurement.class)
+                .time(time, TimeUnit.MICROSECONDS)
                 .addFieldsFromPOJO(dnsLookupMeasurement)
                 .build();
     }
