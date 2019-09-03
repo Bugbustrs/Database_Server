@@ -4,7 +4,6 @@ package Measurements;
 import org.influxdb.annotation.Column;
 import org.influxdb.annotation.Measurement;
 
-import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 @Measurement(name="traceroute", timeUnit = TimeUnit.MILLISECONDS)

@@ -6,6 +6,9 @@ import org.influxdb.annotation.Measurement;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This is a class used to store pcap measurements. The pcap measurements consist of a destination and source address
+ */
 @Measurement(name = "pcap_data", timeUnit = TimeUnit.MILLISECONDS)
 public class PcapMeasurements {
 

@@ -5,6 +5,10 @@ import org.influxdb.annotation.Measurement;
 
 import java.time.Instant;
 
+/**
+ * This is the base measurement class and contains all the column fields that each measurement should have.
+ * All the other network measurement extend from this class.
+ */
 @Measurement(name="SuperMeasurement")
 public class Measurements {
     @Column(name = "time")
@@ -19,6 +23,10 @@ public class Measurements {
     @Column(name = "username")
     private String userName;
 
+    @Column(name="target")
+    private String target;
+
+    //below are the getters and setters of the above fields.
     public boolean isExperiment() {
         return isExperiment;
     }
@@ -30,9 +38,6 @@ public class Measurements {
     public void setTarget(String target) {
         this.target = target;
     }
-
-    @Column(name="target")
-    private String target;
 
     public void setTaskKey(String taskKey) {
         this.taskKey = taskKey;

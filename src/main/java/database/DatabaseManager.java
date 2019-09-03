@@ -45,12 +45,20 @@ public class DatabaseManager {
     private static InfluxDB influxDB;
     private static MongoCollection<Document> jobData, users, researchers, personalData, tempData;
 
-
+    /**
+     * Method to initialize all variables needed to interact with the databases.
+     * @param config, which is  JSON config file with values for  each of the variables.
+     * @return true if the connection to all databases is successful else we return false.
+     */
     public static boolean init(JSONObject config) {
         CONFIGS = config;
         return connectInflux() && connectMongo();
     }
 
+    /**
+     * Writes measurement results into the influx database.
+     * @param jsonObject has the values to be written
+     */
     public static void writeValues(JSONObject jsonObject) {
         System.out.println(jsonObject.toString());
         Point p;
@@ -86,6 +94,11 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Creates a TraceRoute Influx point, which is what we are going to write to the influx database.
+     * @param jsonObject with the values for the traceroute.
+     * @return Influx Point to be written to the database.
+     */
     private static Point createTraceRTPoint(JSONObject jsonObject) {
         JSONObject measurementValues = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -98,6 +111,11 @@ public class DatabaseManager {
                 .build();
     }
 
+    /**
+     * Creates an HTTP Influx point, which is what we are going to write to the influx database.
+     * @param jsonObject with the values for the HTTP.
+     * @return Influx Point to be written to the database.
+     */
     private static Point createHttpPoint(JSONObject jsonObject) {
         JSONObject measurementValues = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -114,6 +132,12 @@ public class DatabaseManager {
                 .build();
     }
 
+
+    /**
+     * Creates a DNS Influx point, which is what we are going to write to the influx database.
+     * @param jsonObject with the values for the DNS.
+     * @return Influx Point to be written to the database.
+     */
     private static Point createDNSPoint(JSONObject jsonObject) {
         JSONObject measurementValues = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -130,6 +154,11 @@ public class DatabaseManager {
                 .build();
     }
 
+    /**
+     * Creates a Ping Influx point, which is what we are going to write to the influx database.
+     * @param jsonObject with the values for the Ping.
+     * @return Influx Point to be written to the database.
+     */
     private static Point createPingPoint(JSONObject jsonObject) {
         JSONObject measurementValues = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -152,6 +181,11 @@ public class DatabaseManager {
                 .build();
     }
 
+    /**
+     * Creates a TCP Influx point, which is what we are going to write to the influx database.
+     * @param jsonObject with the values for the TCP.
+     * @return Influx Point to be written to the database.
+     */
     private static Point createTCPPoint(JSONObject jsonObject) {
         JSONObject measurementValues = jsonObject.getJSONObject("values");
         long time = jsonObject.getLong("timestamp");
@@ -167,6 +201,10 @@ public class DatabaseManager {
                 .build();
     }
 
+    /**
+     * Establishes a connection to the influx database and assigning influxDB variable to the database we are using
+     * @return true if the connection is successful else it return false.
+     */
     public static boolean connectInflux() {
         String databaseAddress = CONFIGS.getString("influxDBAdd");
         DB_NAME = CONFIGS.getString("influxDBName");
@@ -283,12 +321,22 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Returns all saved experiment with the measurement type of type specified
+     * @param type The measurement type
+     * @return String representation of the JSON results
+     */
     public static String getMeasurementOfTypes(String type) {
         System.out.print("Looking for: " + type);
         FindIterable<Document> doc = jobData.find(eq("job_description.measurement_description.type", type));
         return convertIterable(doc);
     }
 
+    /**
+     * Looks for experiment metadata with the given job key
+     * @param key the job key we are looking for
+     * @return String representation of the JSON results.
+     */
     public static String getMeasurementDetails(String key) {
         System.out.print("Looking for: " + key);
         Document doc = jobData.find(eq("job_description.measurement_description.key", key)).first();
@@ -296,12 +344,22 @@ public class DatabaseManager {
         return doc.toJson();
     }
 
+    /**
+     * Get experiment metadata linked to the same user.
+     * @param userID for which you are querying the data for.
+     * @return String representation of the JSON answer.
+     */
     public static String getUserJobs(String userID) {
         System.out.print("Looking for data for: " + userID);
         FindIterable<Document> doc = jobData.find(eq(" user", hashUserName(userID)));
         return convertIterable(doc);
     }
 
+    /**
+     * Given a FindIterable result from a Mongo Query, this method converts the list return into a JSOn Array with the elements in the list as JSOn
+     * @param f the Mongo Query results
+     * @return JSOn Array of JSON elements as String.
+     */
     private static String convertIterable(FindIterable<Document> f) {
         JSONArray jobs = new JSONArray();
         for (Document d : f) {
@@ -311,6 +369,12 @@ public class DatabaseManager {
         return jobs.toString();
     }
 
+    /**
+     * We check to see if we have a particular user who is of a given type. Types include Admin, researcher and standard.
+     * @param userId The user we are looking for.
+     * @param type preassumed user type.
+     * @return true if a user of UserID exists and if the user is of type type.
+     */
     public static boolean isUserContained(String userId, String type) {
         System.out.print("Looking for: " + userId);
         Document doc;

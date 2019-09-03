@@ -6,6 +6,10 @@ import org.influxdb.annotation.Measurement;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * This is a dns measurement, which extends from the base measurement.
+ * DNS measurement is used to store DNS results.
+ */
 @Measurement(name="dns_lookup", timeUnit = TimeUnit.MILLISECONDS)
 public class DNSLookupMeasurement extends Measurements {
 
@@ -18,6 +22,7 @@ public class DNSLookupMeasurement extends Measurements {
     @Column(name ="time_ms")
     private Double timeTaken;
 
+    //getters and setters of the above fields
     public String getHostAddress() {
         return hostAddress;
     }
