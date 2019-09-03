@@ -444,7 +444,7 @@ public class DatabaseManager {
     public static String readPersonalData(String username, long startTimeMillis, long endTimeMillis) {
         username = hashUserName(username);
         BasicDBObject query = new BasicDBObject("user_name", username)
-                .append("date", new BasicDBObject("$gte", startTimeMillis).append("$lte", endTimeMillis));
+                .append("Date", new BasicDBObject("$gte", startTimeMillis).append("$lte", endTimeMillis));
         FindIterable<Document> results = personalData.find(query);
         return results.toString();
     }
