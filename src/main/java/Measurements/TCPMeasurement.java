@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 /***
  * Class to store the TCP measurement we get.
  */
-@Measurement(name="tcp_speed_tesr", timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(name="tcp_speed_test", timeUnit = TimeUnit.MILLISECONDS)
 public class TCPMeasurement extends Measurements{
 
     @Column(name="tcp_speed_results")
