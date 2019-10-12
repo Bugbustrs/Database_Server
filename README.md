@@ -17,7 +17,7 @@ There are three main classes in this repository:
 1. Connect to this server address and then use this socekct for the duration of the connection to send data to the server in form of a json. for now we are assuming the happy case where all the data is in the correct formart though this will need to change.
 
 
-## JSON Formart for incoming data
+## JSON Format for incoming data
 This is the format of the data we expect from the mobile phones:
 ```
 [
